@@ -25,7 +25,7 @@ check_login()
 st.title("Dropbox CSV Viewer")
 
 # --- DropboxからCSVを取得 ---
-def get_csv_from_dropbox(path="/shared/data.csv"):
+def get_csv_from_dropbox(path="/Dropbox/アプリ/在庫データ/在庫データ.csv"):
     dbx = dropbox.Dropbox(st.secrets["DROPBOX_TOKEN"])
     _, res = dbx.files_download(path)
     return pd.read_csv(res.raw)
