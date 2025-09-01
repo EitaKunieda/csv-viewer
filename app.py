@@ -56,7 +56,7 @@ def main():
     try:
         df = get_csv_from_dropbox("/APP/ZAIKO/ZAIKO.csv")
     except Exception as e:
-        st.error(f"DropboxからCSVを取得できませんでした: {e}")
+        st.error(f"DropboxからCSVを取得できませんでしたver2: {e}")
         return
 
     # 商品CD入力
