@@ -1,6 +1,13 @@
 import streamlit as st
 import pandas as pd
 import dropbox
+from dropbox import DropboxOAuth2FlowNoRedirect
+from dropbox import Dropbox
+
+# refresh tokenでアクセストークンを取得
+dbx = Dropbox(oauth2_refresh_token=st.secrets["REFRESH_TOKEN"],
+              app_key=st.secrets["CLIENT_ID"],
+              app_secret=st.secrets["CLIENT_SECRET"])
 
 # --- ログイン機能 ---
 def check_login():
