@@ -29,7 +29,7 @@ def login():
 # Dropbox から CSV を取得
 # -----------------------------
 @st.cache_data
-def get_csv_from_dropbox(path="/在庫データ/在庫データ.csv"):
+def get_csv_from_dropbox(path="/アプリ/在庫データ/在庫データ.csv"):
     dbx = dropbox.Dropbox(
         oauth2_refresh_token=st.secrets["REFRESH_TOKEN"],
         app_key=st.secrets["CLIENT_ID"],
@@ -47,7 +47,7 @@ def main():
     st.title("商品別 在庫集計ビューア")
 
     try:
-        df = get_csv_from_dropbox("/在庫データ/在庫データ.csv")
+        df = get_csv_from_dropbox("/アプリ/在庫データ/在庫データ.csv")
     except Exception as e:
         st.error(f"DropboxからCSVを取得できませんでした: {e}")
         return
