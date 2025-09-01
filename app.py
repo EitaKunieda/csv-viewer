@@ -63,7 +63,7 @@ def main():
         return
 
     # 商品CD入力
-    product_code = st.text_input("商品CDを入力（8桁ゼロ埋め可）")
+    product_code = st.text_input("商品CDを入力")
 
     if product_code:
         # 前ゼロを保持した形で検索
