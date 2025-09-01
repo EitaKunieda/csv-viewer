@@ -29,7 +29,7 @@ def login():
 # Dropbox から CSV を取得
 # -----------------------------
 @st.cache_data
-def get_csv_from_dropbox(path="/data.csv"):
+def get_csv_from_dropbox(path="/在庫データ/在庫データ.csv"):
     dbx = dropbox.Dropbox(
         oauth2_refresh_token=st.secrets["REFRESH_TOKEN"],
         app_key=st.secrets["CLIENT_ID"],
