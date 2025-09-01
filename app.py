@@ -37,6 +37,7 @@ def get_csv_from_dropbox(path="/APP/ZAIKO/ZAIKO.csv"):
     )
     res = dbx.files_list_folder("").entries
     for f in res:
+        print("とりまパスリスト")
         print(f.path_lower)
     
     _, res = dbx.files_download(path)
