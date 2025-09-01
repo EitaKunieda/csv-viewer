@@ -31,11 +31,14 @@ def login():
 # -----------------------------
 @st.cache_data
 def get_csv_from_dropbox(path="/APP/ZAIKO/ZAIKO.csv"):
+    print("getCSVの開始")
     dbx = dropbox.Dropbox(
         oauth2_refresh_token=st.secrets["REFRESH_TOKEN"],
         app_key=st.secrets["CLIENT_ID"],
         app_secret=st.secrets["CLIENT_SECRET"]
     )
+    print("ああああ")
+    
     res = dbx.files_list_folder("").entries
     for f in res:
         print("とりまパスリスト")
