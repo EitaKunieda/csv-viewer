@@ -48,6 +48,7 @@ def get_csv_from_dropbox(path="/APP/ZAIKO/ZAIKO.csv"):
 # メイン処理
 # -----------------------------
 def main():
+    print("プログラム開始ですます")
     login()
     st.title("商品別 在庫集計ビューア")
 
