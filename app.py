@@ -47,6 +47,9 @@ def main():
     st.title("商品別 在庫集計ビューア")
 
     try:
+        res = dbx.files_list_folder("").entries
+        for f in res:
+            print(f.path_lower)
         df = get_csv_from_dropbox("/APP/ZAIKO/ZAIKO.csv")
     except Exception as e:
         st.error(f"DropboxからCSVを取得できませんでした: {e}")
