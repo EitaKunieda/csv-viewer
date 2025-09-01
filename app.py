@@ -35,6 +35,10 @@ def get_csv_from_dropbox(path="/APP/ZAIKO/ZAIKO.csv"):
         app_key=st.secrets["CLIENT_ID"],
         app_secret=st.secrets["CLIENT_SECRET"]
     )
+    res = dbx.files_list_folder("").entries
+    for f in res:
+        print(f.path_lower)
+    
     _, res = dbx.files_download(path)
     # 商品CDを文字列で扱うため dtype={"商品CD": str}
     return pd.read_csv(io.BytesIO(res.content), dtype={"商品CD": str}, parse_dates=["作成日時"])
@@ -47,9 +51,6 @@ def main():
     st.title("商品別 在庫集計ビューア")
 
     try:
-        res = dbx.files_list_folder("").entries
-        for f in res:
-            print(f.path_lower)
         df = get_csv_from_dropbox("/APP/ZAIKO/ZAIKO.csv")
     except Exception as e:
         st.error(f"DropboxからCSVを取得できませんでした: {e}")
