@@ -1,9 +1,7 @@
-
 import streamlit as st
 import pandas as pd
 import dropbox
 import io
-import altair as alt
 
 # -----------------------------
 # 社員ごとのログイン認証
@@ -38,45 +36,49 @@ def get_csv_from_dropbox(path="/data.csv"):
         app_secret=st.secrets["CLIENT_SECRET"]
     )
     _, res = dbx.files_download(path)
-    return pd.read_csv(io.BytesIO(res.content))
+    # 商品CDを文字列で扱うため dtype={"商品CD": str}
+    return pd.read_csv(io.BytesIO(res.content), dtype={"商品CD": str}, parse_dates=["作成日時"])
 
 # -----------------------------
 # メイン処理
 # -----------------------------
 def main():
     login()
+    st.title("商品別 在庫集計ビューア")
 
-    st.title("社内CSVビューア")
-
-    # CSV読込
     try:
         df = get_csv_from_dropbox("/在庫データ/在庫データ.csv")
     except Exception as e:
         st.error(f"DropboxからCSVを取得できませんでした: {e}")
         return
 
-    # 検索
-    query = st.text_input("検索キーワードを入力")
-    filtered_df = df
-    if query:
-        filtered_df = df[df.astype(str).apply(lambda row: row.str.contains(query, case=False, na=False)).any(axis=1)]
+    # 商品CD入力
+    product_code = st.text_input("商品CDを入力（8桁ゼロ埋め可）")
 
-    # データ表示
-    st.dataframe(filtered_df, use_container_width=True)
+    if product_code:
+        # 前ゼロを保持した形で検索
+        filtered = df[df["商品CD"] == product_code]
 
-    # グラフ表示
-    if not filtered_df.empty:
-        numeric_cols = filtered_df.select_dtypes(include="number").columns.tolist()
-        if numeric_cols:
-            col = st.selectbox("グラフ化する列を選択", numeric_cols)
-            chart = (
-                alt.Chart(filtered_df)
-                .mark_bar()
-                .encode(x=col, y="count()")
-                .properties(width=600)
-            )
-            st.altair_chart(chart, use_container_width=True)
+        if filtered.empty:
+            st.warning("該当する商品が見つかりませんでした")
+        else:
+            # 商品名称を取得
+            product_name = filtered["商品名称"].iloc[0]
+            st.subheader(f"商品CD: {product_code} | 商品名称: {product_name}")
+
+            # センターごと在庫数集計
+            summary = filtered.groupby("センター", as_index=False)["在庫数"].sum()
+
+            st.dataframe(summary, use_container_width=True)
+
+            # 棒グラフ表示
+            st.bar_chart(summary.set_index("センター"))
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
 
