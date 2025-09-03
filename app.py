@@ -7,7 +7,6 @@ import tempfile
 
 st.title("バーコード検出＆四角で囲む")
 
-# 画像アップロード
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
@@ -25,16 +24,17 @@ if uploaded_file is not None:
 
     if results:
         for result in results:
-            # bounding box取得
-            region = result.region
-            rect = region.get_boundary()
-            x, y, w, h = rect.x, rect.y, rect.width, rect.height
+            # 頂点座標を取得
+            points = result.region.points  # 4点 (x, y)
 
-            # 四角を描画
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            # numpy配列に変換してポリライン描画
+            pts = np.array([(p.x, p.y) for p in points], np.int32)
+            pts = pts.reshape((-1, 1, 2))
+            cv2.polylines(frame, [pts], isClosed=True, color=(0, 0, 255), thickness=2)
 
-            # ラベル（種類とデータ）を表示
+            # バーコードの種類と内容をラベル表示
             label = f"{result.code_type_name}: {result.code_text}"
+            x, y = pts[0][0]  # 左上の座標を基準に描画
             cv2.putText(frame, label, (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
@@ -50,7 +50,6 @@ if uploaded_file is not None:
 
     else:
         st.error("バーコードを検出できませんでした。")
-
 
 
 if 0:
