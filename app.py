@@ -1,35 +1,31 @@
 import cv2
+import streamlit as st
 from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType
+import tempfile
 
-# カメラ起動
-cap = cv2.VideoCapture(0)
+st.title("バーコード検出デモ")
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["jpg", "png", "jpeg"])
 
-    # 画像を一時保存（Aspose.Barcode はファイル入力が基本）
-    cv2.imwrite("temp.jpg", frame)
+if uploaded_file is not None:
+    # 一時ファイルに保存
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+        tmp.write(uploaded_file.read())
+        tmp_path = tmp.name
 
-    # バーコード検出
-    reader = BarCodeReader("temp.jpg", DecodeType.ALL_SUPPORTED_TYPES)
+    # OpenCVで読み込み
+    frame = cv2.imread(tmp_path)
+
+    # Asposeでバーコード検出
+    reader = BarCodeReader(tmp_path, DecodeType.ALL_SUPPORTED_TYPES)
     for result in reader.read_barcodes():
         rect = result.region.get_boundary()  # bounding box
-        # Asposeは System.Drawing.Rectangle 型で (x, y, width, height)
         x, y, w, h = rect.x, rect.y, rect.width, rect.height
-
-        # 枠を描画
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-    # 表示
-    cv2.imshow("Barcode Detection", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+    # BGR→RGBに変換して表示
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    st.image(frame_rgb, caption="検出結果", use_column_width=True)
 
 
 if 0:
