@@ -2,28 +2,30 @@ import streamlit as st
 from PIL import Image
 import numpy as np
 import cv2
-from pyzxing import BarCodeReader
+import aspose.barcode as barcode
 
-st.title("バーコード読み取りビューア（ZXing版）")
+st.title("バーコード読み取りビューア（Aspose版）")
 
 uploaded_file = st.file_uploader("バーコード画像をアップロード", type=["jpg", "jpeg", "png"])
 if uploaded_file:
+    # 画像を一時保存
+    tmp_path = "temp.png"
     image = Image.open(uploaded_file).convert("RGB")
+    image.save(tmp_path)
     st.image(image, caption="アップロード画像", use_column_width=True)
 
-    # 一時保存
-    tmp_path = "temp.png"
-    image.save(tmp_path)
+    # バーコードリーダー初期化
+    reader = barcode.barcoderecognition.BarCodeReader(tmp_path)
 
-    reader = BarCodeReader()
-    results = reader.decode(tmp_path)
-
-    if results:
+    # 全バーコードを読み取り
+    found = False
+    for result in reader.read_barcodes():
         st.subheader("読み取り結果")
-        for r in results:
-            st.write(f"**タイプ**: {r.get('format')}")
-            st.write(f"**データ**: {r.get('raw')}")
-    else:
+        st.write(f"**タイプ**: {result.code_type_name}")
+        st.write(f"**データ**: {result.code_text}")
+        found = True
+
+    if not found:
         st.warning("バーコードを読み取れませんでした。")
 
 
