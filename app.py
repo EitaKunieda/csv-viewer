@@ -1,58 +1,71 @@
+
+
 import streamlit as st
 import cv2
 import numpy as np
-from PIL import Image
-from io import BytesIO
-from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType
+from PIL import Image, ImageDraw
+from aspose.barcode.barcoderecognition import BarCodeReader
 
-st.title("アップロード画像からバーコード検出（最新版対応）")
+st.title("バーコード撮影＆読み取り（枠付き）")
 
-# ファイルアップローダー
-uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
+# ガイド枠付きのイメージを作成（透明背景に赤枠）
+def create_guide_overlay(width=640, height=480):
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    margin = 80
+    draw.rectangle(
+        [margin, margin, width - margin, height - margin],
+        outline=(255, 0, 0, 200),
+        width=5,
+    )
+    return img
 
-if uploaded_file is not None:
-    # PIL で読み込み
-    image = Image.open(uploaded_file).convert("RGB")
-    frame_bgr = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+st.markdown("📸 バーコードを赤い枠の中に合わせて撮影してください")
 
-    # -----------------------
-    # 前処理（グレースケール＋コントラスト強調＋二値化）
-    # -----------------------
-    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)
-    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY, 11, 2)
-    frame_bgr = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+# ガイド枠を表示
+guide = create_guide_overlay()
+st.image(guide, caption="ガイド枠（参考用）", use_column_width=True)
 
-    # -----------------------
-    # Aspose.BarCode でバーコード検出
-    # -----------------------
-    file_bytes = BytesIO()
-    image.save(file_bytes, format='PNG')
-    file_bytes.seek(0)
+# カメラ入力
+camera_file = st.camera_input("バーコードを撮影")
 
-    reader = BarCodeReader(file_bytes, DecodeType.ALL_SUPPORTED_TYPES)
+# 補正スライダー
+correction = st.slider("太り・欠け補正度", -4.0, 2.0, 0.0, 0.1)
+
+if camera_file is not None:
+    # 撮影画像を読み込み
+    image = Image.open(camera_file).convert("RGB")
+    img_array = np.array(image)
+
+    # 画像処理（膨張 or 収縮）
+    if correction != 0:
+        ksize = max(1, int(round(abs(correction) * 3)))
+        kernel = np.ones((ksize, ksize), np.uint8)
+        if correction > 0:
+            img_array = cv2.dilate(img_array, kernel, iterations=1)
+        else:
+            img_array = cv2.erode(img_array, kernel, iterations=1)
+
+    # 前処理後の画像を保存
+    tmp_path = "tmp_camera_corrected.png"
+    cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
+
+    st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_column_width=True)
+
+    # Aspose.Barcodeで読み取り
+    reader = BarCodeReader(tmp_path)
     results = reader.read_bar_codes()
 
-    # -----------------------
-    # 検出結果を赤枠で描画
-    # -----------------------
     if results:
+        st.subheader("読み取り結果")
         for result in results:
-            region = result.region
-            x, y = int(region.left), int(region.top)
-            w, h = int(region.width), int(region.height)
-            cv2.rectangle(frame_bgr, (x, y), (x + w, y + h), (0, 0, 255), 2)
-
-            label = f"{result.code_type_name}: {result.code_text}"
-            cv2.putText(frame_bgr, label, (x, y - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+            st.write(f"**タイプ**: {result.code_type_name}")
+            st.write(f"**データ**: {result.code_text}")
     else:
-        st.warning("バーコードが検出できませんでした。")
+        st.error("バーコードを読み取れませんでした。枠に正しく合わせて再試行してください。")
 
-    # Streamlit で表示
-    frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-    st.image(frame_rgb, caption="バーコード検出結果", use_container_width=True)
+
+
 
 if 0:
     
