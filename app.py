@@ -4,12 +4,12 @@ import numpy as np
 from PIL import Image
 from aspose.barcode.barcoderecognition import BarCodeReader
 
-st.title("バーコード画像アップロード＆読み取り（補正度調整付き）")
+st.title("バーコード画像アップロード＆読み取り（細かい補正度調整付き）")
 
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
-# スライダーで「太り/欠け補正度」を指定
-correction = st.slider("太り・欠け補正度", -5.0, 5.0, 0.0, 0.1)
+# スライダーを小数で設定
+correction = st.slider("太り・欠け補正度", -2.0, 2.0, 0.0, 0.1)
 
 if uploaded_file is not None:
     # 画像を読み込み
@@ -18,17 +18,20 @@ if uploaded_file is not None:
 
     # OpenCVで前処理（膨張 or 収縮）
     if correction != 0:
-        kernel = np.ones((3, 3), np.uint8)
+        # スライダーの絶対値に応じてカーネルサイズを連続的に変化
+        ksize = max(1, int(round(abs(correction) * 3)))
+        kernel = np.ones((ksize, ksize), np.uint8)
+
         if correction > 0:
-            img_array = cv2.dilate(img_array, kernel, iterations=correction)
+            img_array = cv2.dilate(img_array, kernel, iterations=1)
         else:
-            img_array = cv2.erode(img_array, kernel, iterations=abs(correction))
+            img_array = cv2.erode(img_array, kernel, iterations=1)
 
     # 前処理後の画像を保存
     tmp_path = "tmp_corrected.png"
     cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
 
-    st.image(img_array, caption=f"補正後画像（補正度={correction}）", use_column_width=True)
+    st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_column_width=True)
 
     # Aspose.Barcodeで読み取り
     reader = BarCodeReader(tmp_path)
@@ -41,7 +44,6 @@ if uploaded_file is not None:
             st.write(f"**データ**: {result.code_text}")
     else:
         st.error("バーコードを読み取れませんでした。補正度を変えて再試行してください。")
-
 
 if 0:
     
