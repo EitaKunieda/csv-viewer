@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from io import BytesIO
-from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType, QualitySettings, ScanDirection
+from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType, QualitySettings
 
 st.title("バーコード検出（前処理＋高精度）")
 
@@ -27,7 +27,6 @@ if uploaded_file is not None:
     # -----------------------
     # Aspose.BarCode でバーコード検出
     # -----------------------
-    # Streamlit の BytesIO を直接渡す
     file_bytes = BytesIO()
     image.save(file_bytes, format='PNG')
     file_bytes.seek(0)
@@ -36,9 +35,6 @@ if uploaded_file is not None:
 
     qs = QualitySettings()
     qs.allow_partial_barcodes = True       # 部分的に欠けたバーコードも検出
-    qs.scan_direction = ScanDirection.AUTO # 自動で方向を判定
-    qs.max_barcode_height = 3000
-    qs.min_barcode_height = 10
     reader.quality_settings = qs
 
     results = reader.read_bar_codes()
@@ -49,7 +45,7 @@ if uploaded_file is not None:
     if results:
         for result in results:
             region = result.region
-            # Aspose v23.10 以降は region から left, top, width, height で取得
+            # 最新版 Aspose では region.left/top/width/height で取得
             x, y = int(region.left), int(region.top)
             w, h = int(region.width), int(region.height)
             cv2.rectangle(frame_bgr, (x, y), (x + w, y + h), (0, 0, 255), 2)
@@ -65,7 +61,6 @@ if uploaded_file is not None:
     # -----------------------
     frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
     st.image(frame_rgb, caption="バーコード検出結果", use_container_width=True)
-
 
 if 0:
     
