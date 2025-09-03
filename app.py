@@ -1,32 +1,27 @@
 import streamlit as st
-from PIL import Image
-import numpy as np
-import cv2
-import aspose.barcode as barcode
+from aspose.barcode.barcoderecognition import BarCodeReader
 
-st.title("バーコード読み取りビューア（Aspose版）")
+st.title("バーコード画像アップロード＆読み取り")
 
-uploaded_file = st.file_uploader("バーコード画像をアップロード", type=["jpg", "jpeg", "png"])
-if uploaded_file:
-    # 画像を一時保存
-    tmp_path = "temp.png"
-    image = Image.open(uploaded_file).convert("RGB")
-    image.save(tmp_path)
-    st.image(image, caption="アップロード画像", use_column_width=True)
+uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
-    # バーコードリーダー初期化
-    reader = barcode.barcoderecognition.BarCodeReader(tmp_path)
+if uploaded_file is not None:
+    # 一時ファイルに保存
+    with open("tmp.png", "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    st.image("tmp.png", caption="アップロード画像", use_column_width=True)
 
-    # 全バーコードを読み取り
-    found = False
-    for result in reader.read_barcodes():
+    # Aspose.Barcode で読み取り
+    reader = BarCodeReader("tmp.png")
+    results = reader.read_bar_codes()   # ← こちらが正しい
+
+    if results:
         st.subheader("読み取り結果")
-        st.write(f"**タイプ**: {result.code_type_name}")
-        st.write(f"**データ**: {result.code_text}")
-        found = True
-
-    if not found:
-        st.warning("バーコードを読み取れませんでした。")
+        for result in results:
+            st.write(f"**タイプ**: {result.code_type_name}")
+            st.write(f"**データ**: {result.code_text}")
+    else:
+        st.error("バーコードを読み取れませんでした。")
 
 
 if 0:
