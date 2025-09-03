@@ -1,5 +1,3 @@
-
-
 import streamlit as st
 import cv2
 import numpy as np
@@ -9,10 +7,9 @@ from aspose.barcode.barcoderecognition import BarCodeReader
 st.title("バーコード撮影＆読み取り（枠付き）")
 
 # ガイド枠付きのイメージを作成（透明背景に赤枠）
-def create_guide_overlay(width=640, height=480):
+def create_guide_overlay(width, height, margin=80):
     img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    margin = 80
     draw.rectangle(
         [margin, margin, width - margin, height - margin],
         outline=(255, 0, 0, 200),
@@ -21,10 +18,6 @@ def create_guide_overlay(width=640, height=480):
     return img
 
 st.markdown("📸 バーコードを赤い枠の中に合わせて撮影してください")
-
-# ガイド枠を表示
-guide = create_guide_overlay()
-st.image(guide, caption="ガイド枠（参考用）", use_column_width=True)
 
 # カメラ入力
 camera_file = st.camera_input("バーコードを撮影")
@@ -35,6 +28,9 @@ correction = st.slider("太り・欠け補正度", -4.0, 2.0, 0.0, 0.1)
 if camera_file is not None:
     # 撮影画像を読み込み
     image = Image.open(camera_file).convert("RGB")
+    width, height = image.size
+
+    # 前処理用に numpy 配列化
     img_array = np.array(image)
 
     # 画像処理（膨張 or 収縮）
@@ -46,11 +42,20 @@ if camera_file is not None:
         else:
             img_array = cv2.erode(img_array, kernel, iterations=1)
 
-    # 前処理後の画像を保存
-    tmp_path = "tmp_camera_corrected.png"
-    cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
+    # numpy -> PIL 変換
+    processed_image = Image.fromarray(img_array)
 
-    st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_column_width=True)
+    # ガイド枠を撮影画像サイズで作成
+    guide = create_guide_overlay(width, height, margin=80)
+
+    # 撮影画像とガイド枠を合成
+    combined = Image.alpha_composite(processed_image.convert("RGBA"), guide)
+
+    st.image(combined, caption=f"補正後画像＋ガイド枠（補正度={correction:.1f}）", use_column_width=True)
+
+    # 前処理後の画像を保存して Aspose で読み取り
+    tmp_path = "tmp_camera_corrected.png"
+    combined.convert("RGB").save(tmp_path)
 
     # Aspose.Barcodeで読み取り
     reader = BarCodeReader(tmp_path)
@@ -63,7 +68,6 @@ if camera_file is not None:
             st.write(f"**データ**: {result.code_text}")
     else:
         st.error("バーコードを読み取れませんでした。枠に正しく合わせて再試行してください。")
-
 
 
 
