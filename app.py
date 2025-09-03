@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 from aspose.barcode.barcoderecognition import BarCodeReader
 
-st.title("バーコード画像アップロード＆読み取り（細かい補正度調整付き）")
+st.title("バーコード画像アップロード＆読み取り（受入試験用）")
 
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
