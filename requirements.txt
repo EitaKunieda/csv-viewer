@@ -2,3 +2,4 @@ streamlit
 opencv-python-headless
 Pillow
 aspose-barcode-for-python-via-net
+libgdiplus
