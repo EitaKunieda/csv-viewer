@@ -1,94 +1,54 @@
 import streamlit as st
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 from aspose.barcode.barcoderecognition import BarCodeReader
 
-st.title("バーコード画像アップロード＆読み取り（受入試験用）")
+st.title("バーコード撮影＆読み取り（枠付き）")
 
-uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
+# ガイド枠付きのイメージを作成（透明背景に赤枠）
+def create_guide_overlay(width=640, height=480):
+    img = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    margin = 80
+    draw.rectangle(
+        [margin, margin, width - margin, height - margin],
+        outline=(255, 0, 0, 200),
+        width=5,
+    )
+    return img
 
-# 補正度は「何モジュール太らせ/痩せさせるか」を表す
-correction_modules = st.slider("太り・欠け補正（単位：モジュール）", -2.0, 2.0, 0.0, 0.1)
+st.markdown("📸 バーコードを赤い枠の中に合わせて撮影してください")
 
-def rotate90_if_needed(gray: np.ndarray):
-    # ざっくり：列方向の濃度変動(=バーが縦のとき大きい)と、行方向の濃度変動を比べる
-    cols_std = gray.mean(axis=0).std()
-    rows_std = gray.mean(axis=1).std()
-    if rows_std > cols_std:
-        return cv2.rotate(gray, cv2.ROTATE_90_CLOCKWISE), 90
-    else:
-        return gray, 0
+# ガイド枠を表示
+guide = create_guide_overlay()
+st.image(guide, caption="ガイド枠（参考用）", use_column_width=True)
 
-def estimate_module_px(rot_gray: np.ndarray):
-    # コントラスト標準化＋2値化
-    blur = cv2.GaussianBlur(rot_gray, (5,5), 0)
-    _, thr = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+# カメラ入力
+camera_file = st.camera_input("バーコードを撮影")
 
-    # 列方向に平均して1次元化（縦バーを仮定）
-    black_ratio = (thr == 0).mean(axis=0)  # 0.0〜1.0
-    # 1Dを再2値化して黒(=1)/白(=0)のランレングスを測る
-    line = (black_ratio > 0.5).astype(np.uint8)
-    if line.sum() == 0:
-        return None
+# 補正スライダー
+correction = st.slider("太り・欠け補正度", -4.0, 2.0, 0.0, 0.1)
 
-    diff = np.diff(np.r_[0, line, 0])
-    starts = np.where(diff == 1)[0]
-    ends   = np.where(diff == -1)[0]
-    lengths = ends - starts  # 黒バーの横幅(ピクセル)のリスト
-
-    if len(lengths) == 0:
-        return None
-
-    # 最小バー幅に近い値として10パーセンタイルを採用（外れ値に強い）
-    module_px = int(max(1, round(np.percentile(lengths, 10))))
-    return module_px
-
-def width_correct_by_modules(img_gray: np.ndarray, corr_modules: float):
-    # バーの向きを縦に正規化（縦バー前提で横方向に補正を掛ける）
-    rot_gray, rot_angle = rotate90_if_needed(img_gray)
-
-    module_px = estimate_module_px(rot_gray)
-    if module_px is None or corr_modules == 0.0:
-        # 推定できないときは無加工を返す
-        return img_gray
-
-    # 「何モジュール」 → ピクセルに換算
-    k = int(round(abs(corr_modules) * module_px))
-    if k < 1:
-        return img_gray
-
-    # 横方向だけに効くカーネル（1行×k列）
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (k, 1))
-    if corr_modules > 0:
-        proc = cv2.dilate(rot_gray, kernel, iterations=1)   # 太らせる
-    else:
-        proc = cv2.erode(rot_gray,  kernel, iterations=1)   # 痩せさせる
-
-    # 元の向きに戻す
-    if rot_angle == 90:
-        proc = cv2.rotate(proc, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    return proc
-
-if uploaded_file is not None:
-    # 画像読み込み
-    image = Image.open(uploaded_file).convert("RGB")
+if camera_file is not None:
+    # 撮影画像を読み込み
+    image = Image.open(camera_file).convert("RGB")
     img_array = np.array(image)
 
-    # グレースケールに
-    gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+    # 画像処理（膨張 or 収縮）
+    if correction != 0:
+        ksize = max(1, int(round(abs(correction) * 3)))
+        kernel = np.ones((ksize, ksize), np.uint8)
+        if correction > 0:
+            img_array = cv2.dilate(img_array, kernel, iterations=1)
+        else:
+            img_array = cv2.erode(img_array, kernel, iterations=1)
 
-    # ★スケール・方向正規化に基づく補正（横だけにかける）
-    corrected_gray = width_correct_by_modules(gray, correction_modules)
+    # 前処理後の画像を保存
+    tmp_path = "tmp_camera_corrected.png"
+    cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
 
-    # 表示用にRGBへ
-    corrected_rgb = cv2.cvtColor(corrected_gray, cv2.COLOR_GRAY2RGB)
-
-    # 一時保存してAsposeで読む
-    tmp_path = "tmp_corrected.png"
-    cv2.imwrite(tmp_path, cv2.cvtColor(corrected_rgb, cv2.COLOR_RGB2BGR))
-
-    st.image(corrected_rgb, caption=f"補正後画像（補正={correction_modules:.1f} モジュール）", use_column_width=True)
+    st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_column_width=True)
 
     # Aspose.Barcodeで読み取り
     reader = BarCodeReader(tmp_path)
@@ -100,7 +60,7 @@ if uploaded_file is not None:
             st.write(f"**タイプ**: {result.code_type_name}")
             st.write(f"**データ**: {result.code_text}")
     else:
-        st.error("バーコードを読み取れませんでした。補正度を変えて再試行してください。")
+        st.error("バーコードを読み取れませんでした。枠に正しく合わせて再試行してください。")
 
 
 if 0:
