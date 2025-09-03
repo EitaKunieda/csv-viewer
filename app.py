@@ -1,42 +1,43 @@
+import streamlit as st
 import cv2
-from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType, QualitySettings
+import numpy as np
+from PIL import Image
+from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType
 
-# 入力画像ファイル（スマホで撮った写真など）
-image_path = "input.jpg"
+st.title("アップロード画像からバーコード検出")
 
-# Asposeでバーコード検出
-reader = BarCodeReader(image_path, DecodeType.ALL_SUPPORTED_TYPES)
+# ファイルアップロード
+uploaded_file = st.file_uploader("画像をアップロードしてください", type=["jpg", "jpeg", "png"])
 
-# 高精度モードを有効化
-qs = QualitySettings()
-qs.high_quality_detection = True
-reader.quality_settings = qs
+if uploaded_file is not None:
+    # PILで読み込み→OpenCV形式に変換
+    image = Image.open(uploaded_file).convert("RGB")
+    frame = np.array(image)
+    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-# OpenCVで画像を読み込み
-frame = cv2.imread(image_path)
+    # BarCodeReader で読み取り
+    # StreamlitのアップロードファイルはBytesIOなので、そのまま渡す
+    reader = BarCodeReader(uploaded_file, DecodeType.ALL_SUPPORTED_TYPES)
+    results = reader.read_bar_codes()
 
-# バーコード検出
-results = reader.read_bar_codes()
+    if results:
+        for result in results:
+            # バーコードの位置取得
+            rect = result.region
+            x, y, w, h = rect.left, rect.top, rect.width, rect.height
+            # 赤枠で描画
+            cv2.rectangle(frame_bgr, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            # 種類とデータを表示
+            label = f"{result.code_type_name}: {result.code_text}"
+            cv2.putText(frame_bgr, label, (x, max(y-10, 0)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 2)
+        
+        st.success("バーコード検出成功")
+    else:
+        st.warning("バーコードが検出できませんでした")
 
-if results:
-    for result in results:
-        rect = result.region.rectangle
-        x, y, w, h = rect.x, rect.y, rect.width, rect.height
-
-        # 赤い枠で囲む
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-
-        # バーコード種類と内容を文字で表示
-        label = f"{result.code_type_name}: {result.code_text}"
-        cv2.putText(frame, label, (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-
-    # 結果を保存
-    output_path = "output.jpg"
-    cv2.imwrite(output_path, frame)
-    print(f"✅ バーコード検出結果を {output_path} に保存しました")
-else:
-    print("⚠️ バーコードが検出できませんでした")
+    # OpenCV(BGR)→RGBに変換して表示
+    frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+    st.image(frame_rgb, use_container_width=True)
 
 
 if 0:
