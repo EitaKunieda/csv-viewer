@@ -1,18 +1,18 @@
 import cv2
 from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType, QualitySettings
 
-# 入力画像パス
+# 入力画像ファイル（スマホで撮った写真など）
 image_path = "input.jpg"
 
 # Asposeでバーコード検出
 reader = BarCodeReader(image_path, DecodeType.ALL_SUPPORTED_TYPES)
 
-# 高精度モード
+# 高精度モードを有効化
 qs = QualitySettings()
 qs.high_quality_detection = True
 reader.quality_settings = qs
 
-# 画像をOpenCVで読み込み
+# OpenCVで画像を読み込み
 frame = cv2.imread(image_path)
 
 # バーコード検出
@@ -23,19 +23,21 @@ if results:
         rect = result.region.rectangle
         x, y, w, h = rect.x, rect.y, rect.width, rect.height
 
-        # 四角を描画
+        # 赤い枠で囲む
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-        # ラベル（種類とデータ）を表示
+        # バーコード種類と内容を文字で表示
         label = f"{result.code_type_name}: {result.code_text}"
         cv2.putText(frame, label, (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
     # 結果を保存
-    cv2.imwrite("output.jpg", frame)
-    print("output.jpg に結果を保存しました")
+    output_path = "output.jpg"
+    cv2.imwrite(output_path, frame)
+    print(f"✅ バーコード検出結果を {output_path} に保存しました")
 else:
-    print("バーコードが検出できませんでした")
+    print("⚠️ バーコードが検出できませんでした")
+
 
 if 0:
     
