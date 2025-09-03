@@ -11,7 +11,7 @@ st.title("バーコード検出（前処理＋高精度）")
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
 if uploaded_file is not None:
-    # Streamlit から PIL Image を読み込み
+    # PIL で読み込み
     image = Image.open(uploaded_file).convert("RGB")
     frame_bgr = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
@@ -34,7 +34,7 @@ if uploaded_file is not None:
     reader = BarCodeReader(file_bytes, DecodeType.ALL_SUPPORTED_TYPES)
 
     qs = QualitySettings()
-    qs.allow_partial_barcodes = True       # 部分的に欠けたバーコードも検出
+    qs.allow_partial_barcodes = True  # 部分的に欠けたバーコードも検出
     reader.quality_settings = qs
 
     results = reader.read_bar_codes()
@@ -45,7 +45,7 @@ if uploaded_file is not None:
     if results:
         for result in results:
             region = result.region
-            # 最新版 Aspose では region.left/top/width/height で取得
+            # region.left/top/width/height で取得
             x, y = int(region.left), int(region.top)
             w, h = int(region.width), int(region.height)
             cv2.rectangle(frame_bgr, (x, y), (x + w, y + h), (0, 0, 255), 2)
@@ -54,11 +54,9 @@ if uploaded_file is not None:
             cv2.putText(frame_bgr, label, (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
     else:
-        st.warning("バーコードが検出できませんでした。画像をはっきり撮影して再試行してください。")
+        st.warning("バーコードが検出できませんでした。")
 
-    # -----------------------
     # Streamlit で表示
-    # -----------------------
     frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
     st.image(frame_rgb, caption="バーコード検出結果", use_container_width=True)
 
