@@ -21,25 +21,28 @@ if uploaded_file is not None:
 
     # Asposeでバーコード検出
     reader = BarCodeReader(tmp_path, DecodeType.ALL_SUPPORTED_TYPES)
-    results = reader.read_barcodes()
+    results = reader.read_bar_codes()   # ✅ 正しいメソッド名
 
     if results:
         for result in results:
             # bounding box取得
-            rect = result.region.get_boundary()
+            region = result.region
+            rect = region.get_boundary()
             x, y, w, h = rect.x, rect.y, rect.width, rect.height
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 3)
 
-            # バーコードの種類と内容をラベルとして描画
+            # 四角を描画
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+            # ラベル（種類とデータ）を表示
             label = f"{result.code_type_name}: {result.code_text}"
             cv2.putText(frame, label, (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-        # BGR → RGB変換
+        # BGR→RGBに変換してStreamlitで表示
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         st.image(frame_rgb, caption="検出されたバーコード", use_column_width=True)
 
-        # 結果を表示
+        # 結果リストを表示
         st.subheader("検出結果")
         for result in results:
             st.write(f"**タイプ**: {result.code_type_name}")
