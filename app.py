@@ -3,9 +3,9 @@ import cv2
 import numpy as np
 from PIL import Image
 from io import BytesIO
-from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType, QualitySettings
+from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType
 
-st.title("バーコード検出（前処理＋高精度）")
+st.title("アップロード画像からバーコード検出（最新版対応）")
 
 # ファイルアップローダー
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
@@ -16,10 +16,10 @@ if uploaded_file is not None:
     frame_bgr = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
     # -----------------------
-    # 前処理
+    # 前処理（グレースケール＋コントラスト強調＋二値化）
     # -----------------------
     gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)  # コントラスト強調
+    gray = cv2.equalizeHist(gray)
     thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                    cv2.THRESH_BINARY, 11, 2)
     frame_bgr = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
@@ -32,11 +32,6 @@ if uploaded_file is not None:
     file_bytes.seek(0)
 
     reader = BarCodeReader(file_bytes, DecodeType.ALL_SUPPORTED_TYPES)
-
-    qs = QualitySettings()
-    qs.allow_partial_barcodes = True  # 部分的に欠けたバーコードも検出
-    reader.quality_settings = qs
-
     results = reader.read_bar_codes()
 
     # -----------------------
@@ -45,7 +40,6 @@ if uploaded_file is not None:
     if results:
         for result in results:
             region = result.region
-            # region.left/top/width/height で取得
             x, y = int(region.left), int(region.top)
             w, h = int(region.width), int(region.height)
             cv2.rectangle(frame_bgr, (x, y), (x + w, y + h), (0, 0, 255), 2)
