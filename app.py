@@ -2,47 +2,29 @@ import streamlit as st
 from PIL import Image
 import numpy as np
 import cv2
+from pyzxing import BarCodeReader
 
-st.title("JANコード 読み取りビューア（アップロード方式）")
+st.title("バーコード読み取りビューア（ZXing版）")
 
-st.write("バーコード画像をアップロードしてください。")
-
-# アップロードUI
-uploaded_file = st.file_uploader("画像ファイルを選択 (JPG/PNG)", type=["jpg", "jpeg", "png"])
-
-# 太り・欠け補正度のスライダー
-tuning = st.slider("太り・欠け補正度", min_value=0, max_value=10, value=5, step=1)
-
-if uploaded_file is not None:
-    # 画像読み込み
+uploaded_file = st.file_uploader("バーコード画像をアップロード", type=["jpg", "jpeg", "png"])
+if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="アップロードされた画像", use_column_width=True)
+    st.image(image, caption="アップロード画像", use_column_width=True)
 
-    # OpenCV形式に変換
-    img_cv = np.array(image)
-    img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
+    # 一時保存
+    tmp_path = "temp.png"
+    image.save(tmp_path)
 
-    # グレースケール変換
-    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+    reader = BarCodeReader()
+    results = reader.decode(tmp_path)
 
-    # 太り・欠けシミュレーション（閾値調整）
-    _, thresh = cv2.threshold(
-        gray,
-        127 - tuning * 5,
-        255,
-        cv2.THRESH_BINARY
-    )
-
-    # QR/バーコード検出器
-    detector = cv2.QRCodeDetector()
-    data, points, _ = detector.detectAndDecode(thresh)
-
-    if data:
+    if results:
         st.subheader("読み取り結果")
-        st.write(f"**データ**: {data}")
+        for r in results:
+            st.write(f"**タイプ**: {r.get('format')}")
+            st.write(f"**データ**: {r.get('raw')}")
     else:
-        st.warning("バーコードを読み取れませんでした。補正度を変えて再試行してください。")
-
+        st.warning("バーコードを読み取れませんでした。")
 
 
 if 0:
