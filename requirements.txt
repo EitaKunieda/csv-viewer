@@ -1,4 +1,4 @@
 streamlit
 opencv-python-headless
 Pillow
-pyzxing
+aspose-barcode-for-python-via-net
