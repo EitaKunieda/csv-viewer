@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 import streamlit as st
-from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType
 from PIL import Image
 import tempfile
+from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType, QualitySettings
 
-st.title("バーコード検出＆四角で囲む")
+st.title("バーコード検出＆四角で囲む（高精度版）")
 
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["jpg", "jpeg", "png"])
 
@@ -16,41 +16,109 @@ if uploaded_file is not None:
         tmp_path = tmp.name
 
     # OpenCVで画像読み込み
-    frame = cv2.imread(tmp_path)
+    img = cv2.imread(tmp_path)
 
-    # Asposeでバーコード検出
-    reader = BarCodeReader(tmp_path, DecodeType.ALL_SUPPORTED_TYPES)
-    results = reader.read_bar_codes()   # ✅ 正しいメソッド名
+    # --- 前処理 ---
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.equalizeHist(gray)  # コントラスト強調
+    blur = cv2.GaussianBlur(gray, (3, 3), 0)
+    _, binary = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # 前処理結果を保存
+    preprocessed_path = "tmp_preprocessed.png"
+    cv2.imwrite(preprocessed_path, binary)
+
+    # --- Asposeでバーコード検出 ---
+    reader = BarCodeReader(preprocessed_path, DecodeType.ALL_SUPPORTED_TYPES)
+
+    # 高精度モード
+    reader.quality_settings = QualitySettings.get_high_quality_detection()
+
+    results = reader.read_bar_codes()
 
     if results:
         for result in results:
-            # 頂点座標を取得
-            points = result.region.points  # 4点 (x, y)
-
-            # numpy配列に変換してポリライン描画
+            # バウンディングボックス（4点座標）
+            points = result.region.points
             pts = np.array([(p.x, p.y) for p in points], np.int32)
             pts = pts.reshape((-1, 1, 2))
-            cv2.polylines(frame, [pts], isClosed=True, color=(0, 0, 255), thickness=2)
 
-            # バーコードの種類と内容をラベル表示
+            cv2.polylines(img, [pts], isClosed=True, color=(0, 0, 255), thickness=2)
+
+            # ラベル描画
             label = f"{result.code_type_name}: {result.code_text}"
-            x, y = pts[0][0]  # 左上の座標を基準に描画
-            cv2.putText(frame, label, (x, y - 10),
+            x, y = pts[0][0]
+            cv2.putText(img, label, (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
-        # BGR→RGBに変換してStreamlitで表示
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         st.image(frame_rgb, caption="検出されたバーコード", use_column_width=True)
 
-        # 結果リストを表示
+        # 結果リスト表示
         st.subheader("検出結果")
         for result in results:
             st.write(f"**タイプ**: {result.code_type_name}")
             st.write(f"**データ**: {result.code_text}")
 
     else:
-        st.error("バーコードを検出できませんでした。")
+        st.error("バーコードを検出できませんでした。画像のコントラストや解像度を確認してください。")
 
+
+if 0:
+    
+    import cv2
+    import numpy as np
+    import streamlit as st
+    from aspose.barcode.barcoderecognition import BarCodeReader, DecodeType
+    from PIL import Image
+    import tempfile
+    
+    st.title("バーコード検出＆四角で囲む")
+    
+    uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["jpg", "jpeg", "png"])
+    
+    if uploaded_file is not None:
+        # 一時ファイルに保存
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+            tmp.write(uploaded_file.read())
+            tmp_path = tmp.name
+    
+        # OpenCVで画像読み込み
+        frame = cv2.imread(tmp_path)
+    
+        # Asposeでバーコード検出
+        reader = BarCodeReader(tmp_path, DecodeType.ALL_SUPPORTED_TYPES)
+        results = reader.read_bar_codes()   # ✅ 正しいメソッド名
+    
+        if results:
+            for result in results:
+                # 頂点座標を取得
+                points = result.region.points  # 4点 (x, y)
+    
+                # numpy配列に変換してポリライン描画
+                pts = np.array([(p.x, p.y) for p in points], np.int32)
+                pts = pts.reshape((-1, 1, 2))
+                cv2.polylines(frame, [pts], isClosed=True, color=(0, 0, 255), thickness=2)
+    
+                # バーコードの種類と内容をラベル表示
+                label = f"{result.code_type_name}: {result.code_text}"
+                x, y = pts[0][0]  # 左上の座標を基準に描画
+                cv2.putText(frame, label, (x, y - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+    
+            # BGR→RGBに変換してStreamlitで表示
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            st.image(frame_rgb, caption="検出されたバーコード", use_column_width=True)
+    
+            # 結果リストを表示
+            st.subheader("検出結果")
+            for result in results:
+                st.write(f"**タイプ**: {result.code_type_name}")
+                st.write(f"**データ**: {result.code_text}")
+    
+        else:
+            st.error("バーコードを検出できませんでした。")
+    
 
 if 0:
     
