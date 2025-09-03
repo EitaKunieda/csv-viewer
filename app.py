@@ -9,7 +9,7 @@ st.title("バーコード画像アップロード＆読み取り（補正度調�
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
 # スライダーで「太り/欠け補正度」を指定
-correction = st.slider("太り・欠け補正度", -5, 5, 0, 1)
+correction = st.slider("太り・欠け補正度", -5, 5, 0, 0.1)
 
 if uploaded_file is not None:
     # 画像を読み込み
