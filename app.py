@@ -1,19 +1,38 @@
 import streamlit as st
+import cv2
+import numpy as np
+from PIL import Image
 from aspose.barcode.barcoderecognition import BarCodeReader
 
-st.title("バーコード画像アップロード＆読み取り")
+st.title("バーコード画像アップロード＆読み取り（補正度調整付き）")
 
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
-if uploaded_file is not None:
-    # 一時ファイルに保存
-    with open("tmp.png", "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    st.image("tmp.png", caption="アップロード画像", use_column_width=True)
+# スライダーで「太り/欠け補正度」を指定
+correction = st.slider("太り・欠け補正度", -5, 5, 0, 1)
 
-    # Aspose.Barcode で読み取り
-    reader = BarCodeReader("tmp.png")
-    results = reader.read_bar_codes()   # ← こちらが正しい
+if uploaded_file is not None:
+    # 画像を読み込み
+    image = Image.open(uploaded_file).convert("RGB")
+    img_array = np.array(image)
+
+    # OpenCVで前処理（膨張 or 収縮）
+    if correction != 0:
+        kernel = np.ones((3, 3), np.uint8)
+        if correction > 0:
+            img_array = cv2.dilate(img_array, kernel, iterations=correction)
+        else:
+            img_array = cv2.erode(img_array, kernel, iterations=abs(correction))
+
+    # 前処理後の画像を保存
+    tmp_path = "tmp_corrected.png"
+    cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
+
+    st.image(img_array, caption=f"補正後画像（補正度={correction}）", use_column_width=True)
+
+    # Aspose.Barcodeで読み取り
+    reader = BarCodeReader(tmp_path)
+    results = reader.read_bar_codes()
 
     if results:
         st.subheader("読み取り結果")
@@ -21,8 +40,36 @@ if uploaded_file is not None:
             st.write(f"**タイプ**: {result.code_type_name}")
             st.write(f"**データ**: {result.code_text}")
     else:
-        st.error("バーコードを読み取れませんでした。")
+        st.error("バーコードを読み取れませんでした。補正度を変えて再試行してください。")
 
+
+if 0:
+    
+    import streamlit as st
+    from aspose.barcode.barcoderecognition import BarCodeReader
+    
+    st.title("バーコード画像アップロード＆読み取り")
+    
+    uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
+    
+    if uploaded_file is not None:
+        # 一時ファイルに保存
+        with open("tmp.png", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.image("tmp.png", caption="アップロード画像", use_column_width=True)
+    
+        # Aspose.Barcode で読み取り
+        reader = BarCodeReader("tmp.png")
+        results = reader.read_bar_codes()   # ← こちらが正しい
+    
+        if results:
+            st.subheader("読み取り結果")
+            for result in results:
+                st.write(f"**タイプ**: {result.code_type_name}")
+                st.write(f"**データ**: {result.code_text}")
+        else:
+            st.error("バーコードを読み取れませんでした。")
+    
 
 if 0:
     
