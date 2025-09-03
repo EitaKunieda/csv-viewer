@@ -2,36 +2,27 @@ import streamlit as st
 import cv2
 import numpy as np
 from PIL import Image
-from aspose.barcode.barcoderecognition import BarCodeReader, BarCodeReadType
+from aspose.barcode import BarCodeReader, BarCodeReadType  # ← ここが重要
 
 st.title("バーコード画像アップロード＆相対補正度付き読み取り")
 
-# ファイルアップロード
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
-
-# 補正度スライダー（比率指定）
-correction_ratio = st.slider(
-    "太り・欠け補正度（バーコード幅に対する比率）",
-    -0.1, 0.1, 0.0, 0.005
-)
+correction_ratio = st.slider("太り・欠け補正度（バーコード幅に対する比率）", -0.1, 0.1, 0.0, 0.005)
 
 if uploaded_file is not None:
-    # PIL で画像読み込み
     image = Image.open(uploaded_file).convert("RGB")
     img_array = np.array(image)
 
-    # Aspose.Barcode でバーコード読み取り（bounding box を取得するため）
+    # バーコード読み取り
     reader = BarCodeReader(np.array(image), BarCodeReadType.AllSupportedTypes)
-    results = reader.read_bar_codes()
+    results = reader.read_barcodes()
 
     if not results:
         st.error("バーコードを読み取れませんでした。")
     else:
-        # バーコード領域の幅を取得（最初のバーコードを使用）
-        barcode_rect = results[0].region  # region: [x, y, width, height]
+        barcode_rect = results[0].region
         barcode_width = barcode_rect[2]
 
-        # 補正度をバーコード幅に応じてスケーリング
         ksize = max(1, int(abs(correction_ratio) * barcode_width))
         kernel = np.ones((ksize, ksize), np.uint8)
 
@@ -40,14 +31,12 @@ if uploaded_file is not None:
         elif correction_ratio < 0:
             img_array = cv2.erode(img_array, kernel, iterations=1)
 
-        # 前処理後の画像を保存
         tmp_path = "tmp_corrected.png"
         cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
         st.image(img_array, caption=f"補正後画像（補正比率={correction_ratio:.3f}）", use_column_width=True)
 
-        # 再度 Aspose.Barcode で読み取り
         reader_corrected = BarCodeReader(tmp_path, BarCodeReadType.AllSupportedTypes)
-        results_corrected = reader_corrected.read_bar_codes()
+        results_corrected = reader_corrected.read_barcodes()
 
         if results_corrected:
             st.subheader("読み取り結果")
@@ -56,7 +45,6 @@ if uploaded_file is not None:
                 st.write(f"**データ**: {result.code_text}")
         else:
             st.error("補正後でもバーコードを読み取れませんでした。補正度を変えて再試行してください。")
-
 
 
 
