@@ -6,10 +6,63 @@ from aspose.barcode.barcoderecognition import BarCodeReader
 
 st.title("バーコード画像アップロード＆読み取り（受入試験用）")
 
+# ✅ 正解（期待）バーコードの入力欄
+expected_code = st.text_input("正しいバーコード番号を入力してください（判定に使用）", value="")
+
 uploaded_file = st.file_uploader("バーコード画像をアップロードしてください", type=["png", "jpg", "jpeg"])
 
 # スライダーを小数で設定
 correction = st.slider("太り・欠け補正度", -4.0, 2.0, 0.0, 0.1)
+
+def show_judgement(label: str, status: str):
+    """判定表示（色・文字サイズを変更）"""
+    styles = {
+        "match": ("#00b050", 48),      # 緑・大
+        "partial": ("#ff9900", 44),    # 橙・やや大
+        "no_match": ("#d00000", 48),   # 赤・大
+        "info": ("#666666", 18),       # グレー・小
+    }
+    color, size = styles.get(status, ("#333333", 24))
+    st.markdown(
+        f'<div style="color:{color}; font-size:{size}px; font-weight:800; margin:8px 0;">{label}</div>',
+        unsafe_allow_html=True
+    )
+
+def judge_result(scanned_text: str, code_type_name: str, expected: str):
+    """
+    判定ロジック：
+      - Code39 の場合：評価版でも省略されない想定 → 完全一致か不一致
+      - それ以外：後半が "***" で省略される想定
+           → 先頭の "***" までを前方一致判定
+           → 前半が一致：部分一致、前半不一致：不一致
+      - 例外的に "***" が含まれない他タイプは厳密一致（完全一致/不一致）で扱う
+    """
+    s = (scanned_text or "").strip()
+    e = (expected or "").strip()
+
+    if e == "":
+        return ("期待値が未入力です。上の入力欄に正しいバーコード番号を入力してください。", "info")
+
+    # Code39 の判定（名称のゆらぎも吸収）
+    is_code39 = "code39" in (code_type_name or "").replace(" ", "").lower()
+    if is_code39:
+        return ("完全一致", "match") if s == e else ("不一致", "no_match")
+
+    # 他タイプ：評価版で "***" により後半省略されるケースに対応
+    if "***" in s:
+        prefix = s.split("***", 1)[0]
+        if prefix and e.startswith(prefix):
+            return ("部分一致", "partial")
+        else:
+            return ("不一致", "no_match")
+
+    # "***" が無いケース（例外的に省略されなかった等）は厳密比較
+    if s == e:
+        return ("完全一致", "match")
+    # 片方がもう片方の前半に一致する場合は参考として部分一致扱い
+    if s and (e.startswith(s) or s.startswith(e)):
+        return ("部分一致", "partial")
+    return ("不一致", "no_match")
 
 if uploaded_file is not None:
     # 画像を読み込み
@@ -39,12 +92,21 @@ if uploaded_file is not None:
 
     if results:
         st.subheader("読み取り結果")
-        for result in results:
-            st.write(f"**タイプ**: {result.code_type_name}")
-            st.write(f"**データ**: {result.code_text}")
+        for idx, result in enumerate(results, start=1):
+            code_type = result.code_type_name or ""
+            code_text = result.code_text or ""
+
+            st.markdown(f"**{idx}. タイプ**：{code_type}")
+            st.markdown(f"**データ**：`{code_text}`")
+
+            label, status = judge_result(code_text, code_type, expected_code)
+            show_judgement(label, status)
+
+            # 判定の根拠メモ（小さめ）
+            if ("***" in (code_text or "")) and (status in ["partial", "no_match"]):
+                st.caption("※ 評価版の仕様により後半が \"***\" で省略されるため、先頭部分のみで判定しています。")
     else:
         st.error("バーコードを読み取れませんでした。補正度を変えて再試行してください。")
-
 
 
 if 0:
