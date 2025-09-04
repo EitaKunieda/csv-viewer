@@ -69,16 +69,46 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
     img_array = np.array(image)
 
+    if 0:
+        
+        # OpenCVで前処理（膨張 or 収縮）
+        if correction != 0:
+            # スライダーの絶対値に応じてカーネルサイズを連続的に変化
+            ksize = max(1, int(round(abs(correction) * 3)))
+            kernel = np.ones((ksize, ksize), np.uint8)
+    
+            if correction > 0:
+                img_array = cv2.dilate(img_array, kernel, iterations=1)
+            else:
+                img_array = cv2.erode(img_array, kernel, iterations=1)
+
     # OpenCVで前処理（膨張 or 収縮）
     if correction != 0:
-        # スライダーの絶対値に応じてカーネルサイズを連続的に変化
-        ksize = max(1, int(round(abs(correction) * 3)))
+        # 画像の短辺を基準に補正度を正規化
+        h, w = img_array.shape[:2]
+        short_edge = min(h, w)
+
+        # 短辺の1%を基準に補正度をスケーリング
+        ksize = int(round(short_edge * abs(correction) * 0.01))
+
+        # カーネルサイズは1以上の奇数にする
+        if ksize < 1:
+            ksize = 1
+        if ksize % 2 == 0:
+            ksize += 1
+
         kernel = np.ones((ksize, ksize), np.uint8)
 
         if correction > 0:
             img_array = cv2.dilate(img_array, kernel, iterations=1)
         else:
             img_array = cv2.erode(img_array, kernel, iterations=1)
+
+
+
+
+
+    
 
     # 前処理後の画像を保存
     tmp_path = "tmp_corrected.png"
