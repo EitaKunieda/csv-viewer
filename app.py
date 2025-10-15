@@ -114,7 +114,7 @@ if uploaded_file is not None:
     tmp_path = "tmp_corrected.png"
     cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
 
-    st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_column_width=True)
+    st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_container_width=True)
 
     # Aspose.Barcodeで読み取り
     reader = BarCodeReader(tmp_path)
@@ -305,7 +305,7 @@ if 0:
         quad = detect_barcode_quad(gray)
         if quad is not None:
             warped = four_point_transform(img_array, quad)
-            st.image(warped, caption="台形補正後", use_column_width=True)
+            st.image(warped, caption="台形補正後", use_container_width=True)
             gray = cv2.cvtColor(warped, cv2.COLOR_RGB2GRAY)
         else:
             st.warning("台形補正できませんでした（バーコード領域が検出されませんでした）")
@@ -358,7 +358,7 @@ if 0:
     
     # ガイド枠を表示
     guide = create_guide_overlay()
-    st.image(guide, caption="ガイド枠（参考用）", use_column_width=True)
+    st.image(guide, caption="ガイド枠（参考用）", use_container_width=True)
     
     # カメラ入力
     camera_file = st.camera_input("バーコードを撮影")
@@ -384,7 +384,7 @@ if 0:
         tmp_path = "tmp_camera_corrected.png"
         cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
     
-        st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_column_width=True)
+        st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_container_width=True)
     
         # Aspose.Barcodeで読み取り
         reader = BarCodeReader(tmp_path)
@@ -434,7 +434,7 @@ if 0:
         tmp_path = "tmp_corrected.png"
         cv2.imwrite(tmp_path, cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR))
     
-        st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_column_width=True)
+        st.image(img_array, caption=f"補正後画像（補正度={correction:.1f}）", use_container_width=True)
     
         # Aspose.Barcodeで読み取り
         reader = BarCodeReader(tmp_path)
