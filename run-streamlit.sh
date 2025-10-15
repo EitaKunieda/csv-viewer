@@ -1,3 +1,6 @@
 #!/bin/bash
-export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
-streamlit run app.py
+# 環境変数を追加
+export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
+
+# Streamlit 起動
+sudo -E -u appuser /home/adminuser/venv/bin/streamlit run app.py
