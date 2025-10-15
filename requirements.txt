@@ -4,4 +4,3 @@ Pillow
 aspose-barcode-for-python-via-net
 aspose-words
 aspose-cells
-aspose-barcode
