@@ -1,2 +1,5 @@
 libgdiplus
 libicu-dev
+icu-devtools
+libcairo2
+libpango-1.0-0
