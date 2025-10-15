@@ -1,1 +1,2 @@
 libgdiplus
+libicu-dev
