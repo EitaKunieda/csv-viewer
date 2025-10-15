@@ -2,4 +2,6 @@ streamlit
 opencv-python-headless
 Pillow
 aspose-barcode-for-python-via-net
-libicu-dev
+aspose-words
+aspose-cells
+aspose-barcode
