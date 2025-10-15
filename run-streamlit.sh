@@ -1,3 +1,3 @@
 #!/bin/bash
-export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
+export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
 streamlit run app.py
