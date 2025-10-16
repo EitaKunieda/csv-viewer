@@ -4,4 +4,4 @@
 export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 
 # Streamlit 起動
-sudo -E -u appuser /home/adminuser/venv/bin/streamlit run app.py
+#sudo -E -u appuser /home/adminuser/venv/bin/streamlit run app.py
