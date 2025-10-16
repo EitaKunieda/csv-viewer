@@ -1,3 +1,7 @@
+sudo apt-get update
+sudo apt-get install -y libicu-dev
+
+
 #!/bin/bash
 # 環境変数を追加
 #export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
